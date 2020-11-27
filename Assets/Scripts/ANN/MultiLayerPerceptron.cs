@@ -41,9 +41,22 @@ public class MultiLayerPerceptron : MonoBehaviour
     private void GenerateOutput(List<float> input)
     {
         // Go through each input perceptron and set its state
-        for (var index = 0; index <  inputPerceptrons.Count; index++)
+
+        //for (var index = 0; index <  inputPerceptrons.Count; index++)
+        //{
+        //    inputPerceptrons[index].state = input[index];
+        //}
+
+        foreach (var inputValue in input)
         {
-            inputPerceptrons[index].state = input[index];
+            // initialise input layer perceptrons 
+            var perceptron = new Perceptron() { state = inputValue };
+            inputPerceptrons.Add(perceptron);
+
+            // init hidden layer perceptrons
+            var hiddenPerceptron = new Perceptron();
+            hiddenPerceptron.FeedForward();
+            hiddenPerceptrons.Add(hiddenPerceptron);
         }
 
         // Go through each hidden perceptron and feed forward
@@ -56,6 +69,13 @@ public class MultiLayerPerceptron : MonoBehaviour
         foreach (var op in outputPerceptrons)
         {
             op.FeedForward();
+        }
+
+        for (var index = 0; index < 5; index++)
+        {
+            var outputPerceptron = new Perceptron();
+            outputPerceptron.FeedForward();
+            outputPerceptrons.Add(outputPerceptron);
         }
     }
     // Run the backpropagation learning algorithm. We

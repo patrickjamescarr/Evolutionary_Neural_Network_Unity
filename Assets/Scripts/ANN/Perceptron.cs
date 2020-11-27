@@ -1,27 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
-public class Perceptron : MonoBehaviour
+public class Perceptron
 {
     public List<PerceptronInput> inputs;
     public float state;
     public float error;
 
     private float gain = 0.7f;
-
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 
     // Perform the feedforward algorithm.
     public void FeedForward()
@@ -62,17 +50,19 @@ public class Perceptron : MonoBehaviour
     // the outgoing error contribution
     public float GetIncommingWeight(Perceptron perceptron)
     {
-        // find the first matching perceptron in the inputs.
-        foreach (var input in inputs)
-        {
-            if(input.inputPerceptorn == perceptron)
-            {
-                return input.weight;
-            }    
-        }
+        //foreach (var input in inputs)
+        //{
+        //    if(input.inputPerceptorn == perceptron)
+        //    {
+        //        return input.weight;
+        //    }    
+        //}
 
-        // otherwise we have no weight
-        return 0;
+        // find the first matching perceptron in the inputs.
+        var input = inputs.FirstOrDefault(x => x.inputPerceptorn == perceptron);
+
+        // if we find a match return the weight, otherwise we have no weight.
+        return input ? input.weight : 0;
     }
 
     private float Threshold(float input)
