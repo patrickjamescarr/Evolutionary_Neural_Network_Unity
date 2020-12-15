@@ -80,12 +80,12 @@ CircleCollider2D:
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_UsedByEffector: 1
   m_UsedByComposite: 0
-  m_Offset: {x: 0, y: -0.02}
+  m_Offset: {x: 0, y: 0}
   serializedVersion: 2
-  m_Radius: 0.15
+  m_Radius: 0.18
 --- !u!114 &8619251021701175224
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -192,7 +192,7 @@ PrefabInstance:
     - target: {fileID: 4200406818717265061, guid: 9112e978f3c403a44920e0ba0480af7f,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 0.303
       objectReference: {fileID: 0}
     - target: {fileID: 4200406818717265061, guid: 9112e978f3c403a44920e0ba0480af7f,
         type: 3}
@@ -243,6 +243,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: AI_Witch
+      objectReference: {fileID: 0}
+    - target: {fileID: 4200406818749892043, guid: 9112e978f3c403a44920e0ba0480af7f,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9112e978f3c403a44920e0ba0480af7f, type: 3}
