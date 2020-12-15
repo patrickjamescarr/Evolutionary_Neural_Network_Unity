@@ -6,6 +6,11 @@ public class AICharacterController : MonoBehaviour
 {
     private AIFSM stateMachine;
 
+    private void Awake()
+    {
+        
+    }
+
     // Start is called before the first frame update
     void Start()
     {
