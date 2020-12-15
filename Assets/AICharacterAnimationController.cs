@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Pathfinding;
+using System.Linq;
 
 public enum States
 {
@@ -81,10 +82,10 @@ public class AICharacterAnimationController : MonoBehaviour
     private void Start()
     {
         enemyTag = transform.CompareTag(GreenTeamTag) ? PurpleTeamTag : GreenTeamTag;
-        var friends = GameObject.FindGameObjectsWithTag(transform.tag);
-        var enemies = GameObject.FindGameObjectsWithTag(enemyTag);
 
-        _target = FindClosestGameobject(enemies);
+        var enemies = new List<GameObject>(GameObject.FindGameObjectsWithTag(enemyTag)).FindAll(o => o.transform.root == transform.root);
+
+        _target = FindClosestGameobject(enemies.ToArray());
 
         if (destinationSetter && _target != null)
         {
@@ -185,9 +186,9 @@ public class AICharacterAnimationController : MonoBehaviour
 
     private void SetClosestObjectWithTagAsTarget(string tag)
     {
-        var objects = GameObject.FindGameObjectsWithTag(tag);
+        var objects = new List<GameObject>(GameObject.FindGameObjectsWithTag(tag)).FindAll(o => o.transform.root == transform.root);
 
-        _target = FindClosestGameobject(objects);
+        _target = FindClosestGameobject(objects.ToArray());
 
         if (!_target) return;
 
@@ -212,9 +213,9 @@ public class AICharacterAnimationController : MonoBehaviour
 
         if (!hasTarget || !_target.transform.CompareTag(enemyTag))
         {
-            var enemies = GameObject.FindGameObjectsWithTag(enemyTag);
+            var enemies = new List<GameObject>(GameObject.FindGameObjectsWithTag(enemyTag)).FindAll(o => o.transform.root == transform.root);
 
-            _target = FindClosestGameobject(enemies);
+            _target = FindClosestGameobject(enemies.ToArray());
 
             destinationSetter.target = _target != null ? _target.transform : null;
 
@@ -274,9 +275,9 @@ public class AICharacterAnimationController : MonoBehaviour
 
     private GameObject FindPersuer()
     {
-        var enemies = GameObject.FindGameObjectsWithTag(enemyTag);
+        var enemies = new List<GameObject>(GameObject.FindGameObjectsWithTag(enemyTag)).FindAll(o => o.transform.root == transform.root);
 
-        for (int i = 0; i < enemies.Length; i++)
+        for (int i = 0; i < enemies.Count; i++)
         {
             var enemy = enemies[i].GetComponent<AICharacterAnimationController>();
 
