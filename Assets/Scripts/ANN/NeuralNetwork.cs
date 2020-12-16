@@ -12,8 +12,8 @@ enum ActivationType
 
 public class NeuralNetwork : MonoBehaviour
 {
-    // containers for the elements in our network
-    private int[] layers; // contains the layers in our network. Inputlayer, hidden layers and output
+    // containers for the elements in the network
+    private int[] layers; // contains the layers in the network. Inputlayer, hidden layers and output
     private float[][] neurons; // contains the neurons within each layer
     private float[][] biases; // the biases for each neuron
     private float[][][] weights; // the weights associated with each dendrite
@@ -22,19 +22,6 @@ public class NeuralNetwork : MonoBehaviour
     private ActivationType activationType = ActivationType.ReLU;
 
     public float fitness = 0;
-
-    // Start is called before the first frame update
-    void Start()
-    {
-
-
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 
     public NeuralNetwork(int[] layers)
     {
@@ -170,4 +157,53 @@ public class NeuralNetwork : MonoBehaviour
     {
         return 1.0f / (1.0f + Mathf.Exp(-value));
     }
+
+    public void Mutate(int chance, float val)//used as a simple mutation function for any genetic implementations.
+    {
+        for (int i = 0; i < biases.Length; i++)
+        {
+            for (int j = 0; j < biases[i].Length; j++)
+            {
+                biases[i][j] = (UnityEngine.Random.Range(0f, chance) <= 5) ? biases[i][j] += UnityEngine.Random.Range(-val, val) : biases[i][j];
+            }
+        }
+
+        for (int i = 0; i < weights.Length; i++)
+        {
+            for (int j = 0; j < weights[i].Length; j++)
+            {
+                for (int k = 0; k < weights[i][j].Length; k++)
+                {
+                    weights[i][j][k] = (UnityEngine.Random.Range(0f, chance) <= 5) ? weights[i][j][k] += UnityEngine.Random.Range(-val, val) : weights[i][j][k];
+                }
+            }
+        }
+    }
+
+    // Create a deep copy of the network
+    public NeuralNetwork copy(NeuralNetwork network) 
+    {
+        for (int i = 0; i < biases.Length; i++)
+        {
+            for (int j = 0; j < biases[i].Length; j++)
+            {
+                network.biases[i][j] = biases[i][j];
+            }
+        }
+
+        for (int i = 0; i < weights.Length; i++)
+        {
+            for (int j = 0; j < weights[i].Length; j++)
+            {
+                for (int k = 0; k < weights[i][j].Length; k++)
+                {
+                    network.weights[i][j][k] = weights[i][j][k];
+                }
+            }
+        }
+
+        return network;
+    }
+
+
 }
