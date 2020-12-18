@@ -94,15 +94,15 @@ public class LearningAIController : AICharacterController
 
         if (state.Equals(States.Dead))
         {
-            fitness = timeOfDeath;
+            fitness = timeOfDeath - timeOfCreation - (enemies.Length == 0 ? -10 : 30);
         }
         else if (state.Equals(States.Victory))
         {
-            fitness = timeOfVictory;
+            fitness = timeOfVictory - timeOfCreation + 30;
         }
         else
         {
-            fitness = Time.time;
+            fitness = Time.time - timeOfCreation;
         }
 
         network.fitness = fitness;//updates fitness of network for sorting

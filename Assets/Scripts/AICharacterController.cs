@@ -56,6 +56,7 @@ public class AICharacterController : MonoBehaviour
 
     protected float timeOfDeath;
     protected float timeOfVictory;
+    protected float timeOfCreation;
 
     public GameObject Target
     {
@@ -88,6 +89,7 @@ public class AICharacterController : MonoBehaviour
 
     protected void OnAwake()
     {
+        timeOfCreation = Time.time;
         isoRenderer = GetComponentInChildren<IsometricCharacterRenderer>();
         destinationSetter = GetComponent<AIDestinationSetter>();
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();

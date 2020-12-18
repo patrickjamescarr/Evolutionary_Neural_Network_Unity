@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 enum ActivationType
@@ -10,7 +11,7 @@ enum ActivationType
     ReLU = 2
 }
 
-public class NeuralNetwork
+public class NeuralNetwork : IComparable<NeuralNetwork>
 {
     // containers for the elements in the network
     private int[] layers; // contains the layers in the network. Inputlayer, hidden layers and output
@@ -211,5 +212,43 @@ public class NeuralNetwork
         return network;
     }
 
+    // allows sorting of networks from within a list.
+    // sort by fitness
+    public int CompareTo(NeuralNetwork other)
+    {
+        if (other == null) return 1;
 
+        if (fitness > other.fitness)
+            return 1;
+        else if (fitness < other.fitness)
+            return -1;
+        else
+            return 0;
+    }
+
+    public void Save(string path)//this is used for saving the biases and weights within the network to a file.
+    {
+        File.Create(path).Close();
+        StreamWriter writer = new StreamWriter(path, true);
+
+        for (int i = 0; i < biases.Length; i++)
+        {
+            for (int j = 0; j < biases[i].Length; j++)
+            {
+                writer.WriteLine(biases[i][j]);
+            }
+        }
+
+        for (int i = 0; i < weights.Length; i++)
+        {
+            for (int j = 0; j < weights[i].Length; j++)
+            {
+                for (int k = 0; k < weights[i][j].Length; k++)
+                {
+                    writer.WriteLine(weights[i][j][k]);
+                }
+            }
+        }
+        writer.Close();
+    }
 }

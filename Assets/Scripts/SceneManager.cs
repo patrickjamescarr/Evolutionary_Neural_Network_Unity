@@ -11,7 +11,7 @@ public class SceneManager : MonoBehaviour
     [Range(10, 50)] public int populationSize = 50;
 
     // initialise the network to the rquired size
-    public int[] layers = new int[3] { 8, 5, 5 };
+    public int[] layers = new int[4] { 8, 8, 8, 5 };
 
     [Range(0.0001f, 1f)] public float MutationChance = 0.01f;
 
@@ -24,6 +24,8 @@ public class SceneManager : MonoBehaviour
     public GameObject InstancePrefab;
 
     private int rowSize = 10;
+
+    //private List<GameObject> instances;
 
     private List<LearningAIController> learningAIs;
 
@@ -45,7 +47,7 @@ public class SceneManager : MonoBehaviour
             for (int i = 0; i < learningAIs.Count; i++)
             {
                 // Clean up existing instances
-                Destroy(learningAIs[i]);
+                Destroy(learningAIs[i].transform.root.gameObject);
             }
 
             SortNetworks();
@@ -67,6 +69,8 @@ public class SceneManager : MonoBehaviour
                 learningAi.network = networks[i];
 
                 learningAIs.Add(learningAi);
+
+                //instances.Add(instance);
 
                 instanceCount++;
 
@@ -97,9 +101,10 @@ public class SceneManager : MonoBehaviour
             learningAIs[i].UpdateFitness();
         }
 
+        // sort the networks according to fitness
         networks.Sort();
 
-        // networks[populationSize - 1].Save("Assets/Save.txt");//saves networks weights and biases to file, to preserve network performance
+        networks[populationSize - 1].Save("Assets/Save.txt");//saves networks weights and biases to file, to preserve network performance
 
         for (int i = 0; i < populationSize / 2; i++)
         {
