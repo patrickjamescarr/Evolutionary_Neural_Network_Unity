@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 8619251021701175224}
   - component: {fileID: 8619251021701175230}
   - component: {fileID: 8619251021701175229}
-  - component: {fileID: 8619251021701175202}
+  - component: {fileID: 2874734553949447215}
   m_Layer: 0
   m_Name: Learning_AI
   m_TagString: GreenTeam
@@ -164,7 +164,7 @@ MonoBehaviour:
   tagPenalties: 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
   graphMask:
     value: -1
---- !u!114 &8619251021701175202
+--- !u!114 &2874734553949447215
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -173,10 +173,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 750217849111123434}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62c4dbd6115631849a0d7a1e849043c2, type: 3}
+  m_Script: {fileID: 11500000, guid: 3ce2793dc298ef94d9fa57f32ab0842c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   aiPath: {fileID: 8619251021701175230}
+  network: {fileID: 0}
 --- !u!1001 &3468783915055099890
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -10,7 +10,7 @@ enum ActivationType
     ReLU = 2
 }
 
-public class NeuralNetwork : MonoBehaviour
+public class NeuralNetwork
 {
     // containers for the elements in the network
     private int[] layers; // contains the layers in the network. Inputlayer, hidden layers and output
@@ -106,6 +106,7 @@ public class NeuralNetwork : MonoBehaviour
     // feed forward algorithm
     public float[] FeedForward(float[] inputs)
     {
+        // populate the input layer
         for (int i = 0; i < inputs.Length; i++)
         {
             neurons[0][i] = inputs[i];
@@ -115,14 +116,19 @@ public class NeuralNetwork : MonoBehaviour
         {
             for (int j = 0; j < neurons[i].Length; j++)
             {
+                // calculate the weighted sum
                 float value = 0f;
                 for (int k = 0; k < neurons[i - 1].Length; k++)
                 {
                     value += weights[i - 1][j][k] * neurons[i - 1][k];
                 }
+
+                // apply the activation function
                 neurons[i][j] = Activate(value + biases[i][j]);
             }
         }
+
+        // return the output layer
         return neurons[neurons.Length - 1];
     }
 

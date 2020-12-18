@@ -4,5 +4,5 @@ using UnityEngine;
 
 public class Instance : MonoBehaviour
 {
-    public AICharacterController learningAI;
+    public LearningAIController learningAI;
 }

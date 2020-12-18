@@ -6,19 +6,17 @@ using System.Linq;
 
 public enum States
 {
-    Seek,
-    Attack,
-    Flee,
-    FindHealth,
-    FindMagic,
-    Dead,
-    Victory
+    Seek = 0,
+    Attack = 1,
+    Flee = 2,
+    FindHealth = 3,
+    FindMagic = 4,
+    Dead = 5,
+    Victory = 6
 }
 
 public class AICharacterController : MonoBehaviour
 {
-    public NeuralNetwork network;
-
     public AIPath aiPath;
     IsometricCharacterRenderer isoRenderer;
     private AIDestinationSetter destinationSetter;
@@ -39,20 +37,25 @@ public class AICharacterController : MonoBehaviour
 
     private GameObject _target;
     private GameObject persuer;
-    private GameObject[] enemies;
+    protected GameObject[] enemies;
 
-    private States state;
+    protected States state;
 
-    private bool hasTarget;
-    private bool hasPersuer;
+    protected bool hasTarget;
+    protected bool hasPersuer;
+    protected bool healthAvailable = true;
+    protected bool magicAvailable = true;
+    protected float distanceToTarget = 0.0f;
+    protected float distancePersuer = 0.0f;
+
     private bool findingHealth;
     private bool findingMagic;
-    private bool healthAvailable = true;
-    private float distanceToTarget = 0.0f;
+    
+
     private float lastAttacked = 0.0f;
 
-    private float timeOfDeath;
-    private float timeOfVictory;
+    protected float timeOfDeath;
+    protected float timeOfVictory;
 
     public GameObject Target
     {
@@ -80,6 +83,11 @@ public class AICharacterController : MonoBehaviour
 
     private void Awake()
     {
+        OnAwake();
+    }
+
+    protected void OnAwake()
+    {
         isoRenderer = GetComponentInChildren<IsometricCharacterRenderer>();
         destinationSetter = GetComponent<AIDestinationSetter>();
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
@@ -88,17 +96,7 @@ public class AICharacterController : MonoBehaviour
 
     void Update()
     {
-        enemies = new List<GameObject>(GameObject.FindGameObjectsWithTag(enemyTag)).FindAll(o => o.transform.root == transform.root).ToArray();
-
-        hasTarget = _target != null;
-
-        if (hasTarget)
-        {
-            distanceToTarget = Vector2.Distance(_target.transform.position, transform.position);
-        }
-
-        persuer = FindPersuer();
-        hasPersuer = persuer && persuer.GetComponent<AICharacterController>().Health > 0;
+        UpdateEnemyStatus();
 
         // set the state
         SetState();
@@ -106,6 +104,32 @@ public class AICharacterController : MonoBehaviour
         // perform action
         Act();
 
+        Animate();
+    }
+
+    protected void UpdateEnemyStatus()
+    {
+        // Get current enemies
+        enemies = new List<GameObject>(GameObject.FindGameObjectsWithTag(enemyTag)).FindAll(o => o.transform.root == transform.root).ToArray();
+
+        // Target
+        hasTarget = _target != null;
+        distanceToTarget = hasTarget ? Vector2.Distance(_target.transform.position, transform.position) : -1f;
+        
+        // Persuer
+        persuer = FindPersuer();
+        hasPersuer = persuer && persuer.GetComponent<AICharacterController>().Health > 0;
+        distancePersuer = hasPersuer ? Vector2.Distance(persuer.transform.position, transform.position) : -1f;
+    }
+
+    protected void UpdateHealthAndMagicStatus()
+    {
+        healthAvailable = new List<GameObject>(GameObject.FindGameObjectsWithTag(HealthTag)).FindAll(o => o.transform.root == transform.root).Any();
+        magicAvailable = new List<GameObject>(GameObject.FindGameObjectsWithTag(MagicTag)).FindAll(o => o.transform.root == transform.root).Any();
+    }
+
+    protected void Animate()
+    {
         // move in desired direction
         isoRenderer.SetDirection(new Vector2(aiPath.desiredVelocity.x, aiPath.desiredVelocity.y));
     }
@@ -127,7 +151,7 @@ public class AICharacterController : MonoBehaviour
         }
     }
 
-    private void Act()
+    protected void Act()
     {
         switch (state)
         {
@@ -206,7 +230,7 @@ public class AICharacterController : MonoBehaviour
 
         _target = FindClosestGameobject(objects.ToArray());
 
-        if (!_target) return;
+        if (_target == null) return;
 
         destinationSetter.target = _target.transform;
     }
@@ -214,17 +238,17 @@ public class AICharacterController : MonoBehaviour
     private void Die()
     {
         CancelCurrentDestination();
+
         spriteRenderer.material.color = Color.gray;
+
         if(transform.name.Equals("Learning_AI"))
         {
-            transform.tag = "Dead Learning AI";
             transform.gameObject.SetActive(false);
         }
         else
         {
             Destroy(gameObject);
         }
-
     }
 
     private void CancelCurrentDestination()
@@ -246,8 +270,6 @@ public class AICharacterController : MonoBehaviour
             _target = FindClosestGameobject(enemies.ToArray());
 
             destinationSetter.target = _target != null ? _target.transform : null;
-
-            aiPath.OnTargetReached();
         }
     }
 
@@ -260,9 +282,11 @@ public class AICharacterController : MonoBehaviour
         {
             lastAttacked = Time.time;
 
-            if (!_target) return;
+            if (_target == null) return;
 
             var enemy = _target.GetComponent<AICharacterController>();
+
+            if (enemy == null) return;
 
             StartCoroutine(enemy.TakeDamage());
 
@@ -307,7 +331,7 @@ public class AICharacterController : MonoBehaviour
         {
             var enemy = enemies[i].GetComponent<AICharacterController>();
 
-            if (enemy.Health > 0 && enemy.Target != null && enemy.Target.name.Equals(name))
+            if (enemy != null && enemy.Health > 0 && enemy.Target != null && enemy.Target.name.Equals(name))
             {
                 return enemy.gameObject;
             }
@@ -316,17 +340,15 @@ public class AICharacterController : MonoBehaviour
         return null;
     }
 
-    private void SetState()
+    protected void SetState()
     {
         if (_health <= 0)
         {
-            timeOfDeath = Time.time;
-            state = States.Dead;
+            SetStateDead();
         }
         else if (enemies.Length == 0)
         {
-            timeOfVictory = Time.time;
-            state = States.Victory;
+            SetStateVictory();
         }
         else if ((_health > HealthLow || !healthAvailable) && _magic > 0 && ((hasTarget && distanceToTarget > attackRange) || !hasTarget))
         {
@@ -348,6 +370,18 @@ public class AICharacterController : MonoBehaviour
         {
             state = States.FindMagic;
         }
+    }
+
+    protected void SetStateVictory()
+    {
+        timeOfVictory = Time.time;
+        state = States.Victory;
+    }
+
+    protected void SetStateDead()
+    {
+        timeOfDeath = Time.time;
+        state = States.Dead;
     }
 
     private GameObject FindClosestGameobject(GameObject[] objects)
@@ -417,32 +451,11 @@ public class AICharacterController : MonoBehaviour
 
         for (var n = 0; n < 5; n++)
         {
-            spriteRenderer.material.color = Color.white;
+            if(spriteRenderer != null) spriteRenderer.material.color = Color.white;
             yield return new WaitForSecondsRealtime(0.1f);
-            spriteRenderer.material.color = Color.red;
+            if (spriteRenderer != null) spriteRenderer.material.color = Color.red;
             yield return new WaitForSecondsRealtime(0.1f);
         }
-        spriteRenderer.material.color = Color.white;
+        if (spriteRenderer != null) spriteRenderer.material.color = Color.white;
     }
-
-    public void UpdateFitness()
-    {
-        float fitness;
-
-        if (state.Equals(States.Dead))
-        {
-            fitness = timeOfDeath;
-        }
-        else if (state.Equals(States.Victory))
-        {
-            fitness = timeOfVictory;
-        }
-        else
-        {
-            fitness = Time.time;
-        }
-
-        network.fitness = fitness;//updates fitness of network for sorting
-    }
-
 }
