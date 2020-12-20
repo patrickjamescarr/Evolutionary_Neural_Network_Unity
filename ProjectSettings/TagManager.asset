@@ -8,6 +8,8 @@ TagManager:
   - PurpleTeam
   - Magic
   - Health
+  - UI_Iterations
+  - UI_Fitness
   layers:
   - Default
   - TransparentFX

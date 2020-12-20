@@ -68,7 +68,7 @@ public class IsometricCharacterRenderer : MonoBehaviour
         //calculate the amount of steps required to reach this angle
         float stepCount = angle / step;
         //round it, and we have the answer!
-        return Mathf.FloorToInt(stepCount);
+        return Mathf.FloorToInt(Mathf.Clamp(stepCount, 0, sliceCount - 1));
     }
 
 

@@ -24,8 +24,12 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
 
     public float fitness = 0;
 
+    private Guid networkId;
+
     public NeuralNetwork(int[] layers)
     {
+        this.networkId = Guid.NewGuid();
+
         this.layers = new int[layers.Length];
 
         for (int i = 0; i < layers.Length; i++)
@@ -250,5 +254,41 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
             }
         }
         writer.Close();
+    }
+
+    public void Load(string path)//this loads the biases and weights from within a file into the neural network.
+    {
+        TextReader tr = new StreamReader(path);
+        int NumberOfLines = (int)new FileInfo(path).Length;
+        string[] ListLines = new string[NumberOfLines];
+        int index = 1;
+        for (int i = 1; i < NumberOfLines; i++)
+        {
+            ListLines[i] = tr.ReadLine();
+        }
+        tr.Close();
+        if (new FileInfo(path).Length > 0)
+        {
+            for (int i = 0; i < biases.Length; i++)
+            {
+                for (int j = 0; j < biases[i].Length; j++)
+                {
+                    biases[i][j] = float.Parse(ListLines[index]);
+                    index++;
+                }
+            }
+
+            for (int i = 0; i < weights.Length; i++)
+            {
+                for (int j = 0; j < weights[i].Length; j++)
+                {
+                    for (int k = 0; k < weights[i][j].Length; k++)
+                    {
+                        weights[i][j][k] = float.Parse(ListLines[index]); ;
+                        index++;
+                    }
+                }
+            }
+        }
     }
 }

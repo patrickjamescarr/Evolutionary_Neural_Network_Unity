@@ -4,7 +4,7 @@ public class CameraController : MonoBehaviour
 {
     private readonly float panSpeed = 10f;
     private Vector2 panLimit = new Vector2(40, 50);
-    private readonly float scrollSpeed = 1000f;
+    private readonly float scrollSpeed = 50f;
     private Camera cam;
     
     private void Awake()
@@ -20,22 +20,22 @@ public class CameraController : MonoBehaviour
 
         if (Input.GetKey("w"))
         {
-            pos.y += panSpeed * Time.deltaTime;
+            pos.y += panSpeed * Time.unscaledDeltaTime;
         }
 
         if (Input.GetKey("s"))
         {
-            pos.y -= panSpeed * Time.deltaTime;
+            pos.y -= panSpeed * Time.unscaledDeltaTime;
         }
 
         if (Input.GetKey("d"))
         {
-            pos.x += panSpeed * Time.deltaTime;
+            pos.x += panSpeed * Time.unscaledDeltaTime;
         }
 
         if (Input.GetKey("a"))
         {
-            pos.x -= panSpeed * Time.deltaTime;
+            pos.x -= panSpeed * Time.unscaledDeltaTime;
         }
 
         //pos.x = Mathf.Clamp(pos.x, -panLimit.x, panLimit.x);
@@ -45,7 +45,7 @@ public class CameraController : MonoBehaviour
 
         // Zoom
         var scroll = Input.GetAxis("Mouse ScrollWheel");
-        cam.orthographicSize -= scroll * scrollSpeed * Time.deltaTime;
+        cam.orthographicSize -= scroll * scrollSpeed * Time.unscaledDeltaTime;
         cam.orthographicSize = Mathf.Clamp(cam.orthographicSize, 5, 50);
     }
 }

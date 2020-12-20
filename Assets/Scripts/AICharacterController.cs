@@ -46,17 +46,26 @@ public class AICharacterController : MonoBehaviour
     protected bool healthAvailable = true;
     protected bool magicAvailable = true;
     protected float distanceToTarget = 0.0f;
-    protected float distancePersuer = 0.0f;
+    protected float distanceToPersuer = 0.0f;
 
     private bool findingHealth;
     private bool findingMagic;
-    
+
 
     private float lastAttacked = 0.0f;
 
     protected float timeOfDeath;
     protected float timeOfVictory;
     protected float timeOfCreation;
+
+    protected int enemiesKilled = 0;
+    protected int hitsLanded = 0;
+    protected int hitsTaken = 0;
+
+    protected int attackFitness = 0;
+    protected int fleeFitness = 0;
+    protected int healthFitness = 0;
+    protected int magicFitness = 0;
 
     public GameObject Target
     {
@@ -117,11 +126,12 @@ public class AICharacterController : MonoBehaviour
         // Target
         hasTarget = _target != null;
         distanceToTarget = hasTarget ? Vector2.Distance(_target.transform.position, transform.position) : -1f;
-        
+
         // Persuer
-        persuer = FindPersuer();
+        persuer = FindClosestGameobject(FindPersuers().ToArray());
+
         hasPersuer = persuer && persuer.GetComponent<AICharacterController>().Health > 0;
-        distancePersuer = hasPersuer ? Vector2.Distance(persuer.transform.position, transform.position) : -1f;
+        distanceToPersuer = hasPersuer ? Vector2.Distance(persuer.transform.position, transform.position) : -1f;
     }
 
     protected void UpdateHealthAndMagicStatus()
@@ -188,6 +198,15 @@ public class AICharacterController : MonoBehaviour
         aiPath.maxSpeed = 0.5f;
         aiPath.endReachedDistance = 0.0f;
 
+        if(Magic < 5)
+        {
+            magicFitness++;
+        }
+        else
+        {
+            magicFitness--;
+        }
+
         if(findingMagic && aiPath.velocity.magnitude == 0.0f)
         {
             SetClosestObjectWithTagAsTarget(MagicTag, _target);
@@ -205,6 +224,15 @@ public class AICharacterController : MonoBehaviour
     {
         aiPath.maxSpeed = 1f;
         aiPath.endReachedDistance = 0.0f;
+
+        if (Health < 5)
+        {
+            healthFitness++;
+        }
+        else
+        {
+            healthFitness--;
+        }
 
         if (findingHealth && aiPath.velocity.magnitude == 0.0f)
         {
@@ -280,17 +308,39 @@ public class AICharacterController : MonoBehaviour
         aiPath.endReachedDistance = 1.5f;
         aiPath.maxSpeed = 0.5f;
 
+        if (transform.name.Equals("Learning_AI"))
+        {
+            SetClosestObjectWithTagAsTarget(enemyTag);
+
+            if(_target != null)
+            {
+                distanceToTarget = Vector2.Distance(_target.transform.position, transform.position);
+
+                if (_magic <= 0)
+                {
+                    attackFitness--;
+                }
+            }
+        }
+
         if (Time.time - lastAttacked > 1.5f && _magic >= 1)
         {
             lastAttacked = Time.time;
 
-            if (_target == null) return;
+            if (_target == null || distanceToTarget > attackRange) return;
 
             var enemy = _target.GetComponent<AICharacterController>();
 
             if (enemy == null) return;
 
             StartCoroutine(enemy.TakeDamage());
+
+            hitsLanded++;
+
+            if(enemy.Health == 0)
+            {
+                enemiesKilled++;
+            }
 
             _magic--;
         }
@@ -300,6 +350,7 @@ public class AICharacterController : MonoBehaviour
     {
         if (!hasPersuer)
         {
+            fleeFitness--;
             return;
         }
 
@@ -309,6 +360,15 @@ public class AICharacterController : MonoBehaviour
         // get the positions
         var position = transform.position;
         var persuerPosition = persuer.transform.position;
+
+        if (_health <= HealthLow && Vector2.Distance(persuerPosition, position) >= attackRange)
+        {
+            fleeFitness++;
+        }
+        else
+        {
+            fleeFitness--;
+        }
 
         // zero out the z coordinates
         position.z = 0f;
@@ -327,19 +387,21 @@ public class AICharacterController : MonoBehaviour
         seeker.StartPath(path);
     }
 
-    private GameObject FindPersuer()
+    private List<GameObject> FindPersuers()
     {
+        List<GameObject> persuers = new List<GameObject>();
+
         for (int i = 0; i < enemies.Length; i++)
         {
             var enemy = enemies[i].GetComponent<AICharacterController>();
 
             if (enemy != null && enemy.Health > 0 && enemy.Target != null && enemy.Target.name.Equals(name))
             {
-                return enemy.gameObject;
+                persuers.Add(enemy.gameObject);
             }
         }
 
-        return null;
+        return persuers;
     }
 
     protected void SetState()
@@ -386,7 +448,7 @@ public class AICharacterController : MonoBehaviour
         state = States.Dead;
     }
 
-    private GameObject FindClosestGameobject(GameObject[] objects)
+    protected GameObject FindClosestGameobject(GameObject[] objects)
     {
         GameObject closestObject = null;
 
@@ -450,6 +512,7 @@ public class AICharacterController : MonoBehaviour
     public IEnumerator TakeDamage()
     {
         _health--;
+        hitsTaken++;
 
         for (var n = 0; n < 5; n++)
         {
