@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -18,18 +17,13 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
     private float[][] neurons; // contains the neurons within each layer
     private float[][] biases; // the biases for each neuron
     private float[][][] weights; // the weights associated with each dendrite
-    private int[] activations; // TODO comment this
 
     private ActivationType activationType = ActivationType.ReLU;
 
     public float fitness = 0;
 
-    private Guid networkId;
-
     public NeuralNetwork(int[] layers)
     {
-        this.networkId = Guid.NewGuid();
-
         this.layers = new int[layers.Length];
 
         for (int i = 0; i < layers.Length; i++)
@@ -67,7 +61,7 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
             for (int j = 0; j < layers[i]; j++)
             {
                 // use a small randon value to initialise the bias
-                bias[j] = UnityEngine.Random.Range(-0.5f, 0.5f);
+                bias[j] = UnityEngine.Random.Range(0.01f, 0.5f);
             }
 
             biasList.Add(bias);
@@ -96,7 +90,7 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
                 for (int k = 0; k < neuronsInPreviousLayer; k++)
                 {
                     // use a small randon value to initialise the weight
-                    neuronWeights[k] = UnityEngine.Random.Range(-0.5f, 0.5f);
+                    neuronWeights[k] = UnityEngine.Random.Range(0.01f, 0.5f);
                 }
 
                 layerWeightsList.Add(neuronWeights);
@@ -169,13 +163,21 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
         return 1.0f / (1.0f + Mathf.Exp(-value));
     }
 
+
     public void Mutate(int chance, float val)//used as a simple mutation function for any genetic implementations.
     {
         for (int i = 0; i < biases.Length; i++)
         {
             for (int j = 0; j < biases[i].Length; j++)
             {
-                biases[i][j] = (UnityEngine.Random.Range(0f, chance) <= 5) ? biases[i][j] += UnityEngine.Random.Range(-val, val) : biases[i][j];
+                var mutate = UnityEngine.Random.Range(0f, chance) <= 5;
+
+                if(mutate)
+                {
+                    var mutationAmount = UnityEngine.Random.Range(-val, val);
+
+                    biases[i][j] += mutationAmount;
+                }
             }
         }
 
@@ -185,14 +187,21 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
             {
                 for (int k = 0; k < weights[i][j].Length; k++)
                 {
-                    weights[i][j][k] = (UnityEngine.Random.Range(0f, chance) <= 5) ? weights[i][j][k] += UnityEngine.Random.Range(-val, val) : weights[i][j][k];
+                    var mutate = UnityEngine.Random.Range(0f, chance) <= 5;
+
+                    if (mutate)
+                    {
+                        var mutationAmount = UnityEngine.Random.Range(-val, val);
+
+                        weights[i][j][k] += mutationAmount;
+                    }
                 }
             }
         }
     }
 
-    // Create a deep copy of the network
-    public NeuralNetwork copy(NeuralNetwork network) 
+    // Create a deep clone of the network's weights and biases
+    public NeuralNetwork Clone(NeuralNetwork network) 
     {
         for (int i = 0; i < biases.Length; i++)
         {
@@ -214,6 +223,32 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
         }
 
         return network;
+    }
+
+    public NeuralNetwork Crossover(NeuralNetwork network)
+    {
+        var child = new NeuralNetwork(layers);
+
+        for (int i = 0; i < biases.Length; i++)
+        {
+            for (int j = 0; j < biases[i].Length; j++)
+            {
+                child.biases[i][j] = UnityEngine.Random.value < 0.5 ? biases[i][j] : network.biases[i][j];
+            }
+        }
+
+        for (int i = 0; i < weights.Length; i++)
+        {
+            for (int j = 0; j < weights[i].Length; j++)
+            {
+                for (int k = 0; k < weights[i][j].Length; k++)
+                {
+                    child.weights[i][j][k] = UnityEngine.Random.value < 0.5 ? weights[i][j][k] : network.weights[i][j][k];
+                }
+            }
+        }
+
+        return child;
     }
 
     // allows sorting of networks from within a list.

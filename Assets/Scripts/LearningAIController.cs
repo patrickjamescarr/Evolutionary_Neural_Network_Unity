@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Linq;
+using UnityEngine;
 
 public class LearningAIController : AICharacterController
 {
@@ -42,6 +43,14 @@ public class LearningAIController : AICharacterController
         }
     }
 
+    public bool TeamWon
+    {
+        get
+        {
+            return EnemyCount() == 0;
+        }
+    }
+
     private void Awake()
     {
         OnAwake(); 
@@ -65,7 +74,7 @@ public class LearningAIController : AICharacterController
         {
             SetStateDead();
         }
-        else if(enemies.Length == 0)
+        else if(EnemyCount() == 0)
         {
             SetStateVictory();
         }
@@ -73,7 +82,7 @@ public class LearningAIController : AICharacterController
         {
             // has target
             //input[0] = hasTarget ? 1f : 0f;
-            input[0] = enemies.Length;
+            input[0] = EnemyCount();
 
             // has target
             input[1] = hasPersuer ? 1f : 0f;
@@ -142,16 +151,50 @@ public class LearningAIController : AICharacterController
 
         //fitness += KillsDamageGivenAndTake();
 
-        //fitness += GetSurvivalTime(currentTime);
+        //fitness += fleeFitness + healthFitness + magicFitness;
 
-        fitness += hitsLanded;
+        //fitness += GetSurvivalTime(currentTime) * Kills;
 
+        //fitness += state == States.Victory ? 200 : 0;
 
-        fitness += (enemies.Length == 0 ? 50 : 0);
+        //fitness += EnemyCount() == 0 ? 100 : 0;
+
+        //fitness += hitsLanded;
+
+        //var enemyScore = 50;
+
+        //enemyScore -= enemies.Length * 10;
+
+        //fitness += enemyScore;
+
+        //fitness += EnemyCount() == 0 ? 100 : 0;
+
+        //fitness += state == States.Victory ? 200 : 0;
 
         //fitness += Kills * 10;
 
-        //fitness += (attackFitness + hitsLanded + fleeFitness + healthFitness + magicFitness);
+        //var hitScore = (hitsLanded * GetSurvivalTime(currentTime)) / 10;
+
+        //fitness += hitScore;
+
+        fitness += (attackFitness + fleeFitness + healthFitness + magicFitness);
+
+        //fitness += (healthFitness + magicFitness + fleeFitness + attackFitness);
+
+        //fitness = fitness >= 0 ? fitness * hitsLanded : fitness;
+
+        //fitness /= 20;
+
+
+
+
+        //fitness += attackFitness;
+
+        //fitness += hitsLanded;
+
+        //fitness += EnemyCount() == 0 ? 50 : 0;
+
+        //fitness += GetSurvivalTime(currentTime);
 
         network.fitness = fitness; //updates fitness of network for sorting
 

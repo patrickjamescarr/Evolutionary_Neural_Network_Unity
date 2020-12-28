@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -28,16 +29,20 @@ public class SceneManager : MonoBehaviour
     // Output panel labels
     public Text interationsLabel;
     public Text fitnessLabel;
+    public Text changeInFitnessLabel;
     public Text greenTeamWinsLabel;
     public Text survivedLabel;
+    public Text avgFitnessLabel;
     public Text avgKillsLabel;
     public Text avgDmgGivenLabel;
     public Text avgDmgTakenLabel;
     public Text avgSurvivalTimeLabel;
-    public Text fittestgKillsLabel;
+    public Text fittestFitnessLabel;
+    public Text fittestKillsLabel;
     public Text fittestDmgGivenLabel;
     public Text fittestDmgTakenLabel;
     public Text fittestSurvivalTimeLabel;
+    public Text timeLabel;
     #endregion
 
     // the networks belonging to each AI
@@ -50,7 +55,18 @@ public class SceneManager : MonoBehaviour
     private List<LearningAIController> learningAIs;
 
     // how many interations/generations have passed
-    private int interationCount = 0;
+    private int iterationCount = 0;
+
+    private float interationStartTime = 0f;
+    private float elapsedTime = 0f;
+
+    private float previousAvgFitness= 0f;
+
+    private void Update()
+    {
+        elapsedTime = Time.time - interationStartTime;
+        timeLabel.text = "Time: " + elapsedTime.ToString("0.##");
+    }
 
     // Start is called before the first frame update
     void Start()
@@ -58,7 +74,9 @@ public class SceneManager : MonoBehaviour
         InitialiseNetworks();
 
         // Call the CreateInstances function to repeat in the given time frame
-        InvokeRepeating(nameof(NewIteration), 0.1f, timeframe);
+        //InvokeRepeating(nameof(NewIteration), 0.1f, timeframe);
+
+        StartCoroutine(NewIteration());
     }
 
     /// <summary>
@@ -71,7 +89,7 @@ public class SceneManager : MonoBehaviour
         for (int i = 0; i < populationSize; i++)
         {
             var network = new NeuralNetwork(layers);
-            network.Load("Assets/Results/Hits_WinBonus_AutoTargetAttack.txt");//on start load the network save
+            //network.Load("Assets/Results/Hits_WinBonus_AutoTargetAttack.txt");//on start load the network save
             networks.Add(network);
         }
     }
@@ -79,23 +97,35 @@ public class SceneManager : MonoBehaviour
     /// <summary>
     /// 
     /// </summary>
-    private void NewIteration()
+    private IEnumerator NewIteration()
     {
-        // capture the current scaled game time 
-        var currentTime = Time.time;
-
-        // Set the game speed
-        Time.timeScale = Gamespeed;
-
-        // record metrics and sort networks from the previous iteration
-        if (learningAIs != null)
+        while (true)
         {
-            RecordMetrics(currentTime);
-            SortNetworks(currentTime);
-        }
+            // Let the engine run for a frame.
+            yield return null;
 
-        // create the new instances
-        CreateInstances();
+            // capture the current scaled game time 
+            var currentTime = Time.time;
+
+            interationStartTime = currentTime;
+
+            elapsedTime = 0.0f;
+
+            // Set the game speed
+            Time.timeScale = Gamespeed;
+
+            // record metrics and sort networks from the previous iteration
+            if (learningAIs != null)
+            {
+                RecordMetrics(currentTime);
+                SortNetworks(currentTime);
+            }
+
+            // create the new instances
+            CreateInstances();
+
+            yield return new WaitForSeconds(timeframe);
+        }
     }
 
     /// <summary>
@@ -104,8 +134,6 @@ public class SceneManager : MonoBehaviour
     private void CreateInstances()
     {
         int instanceCount = 0;
-
-        var unscaledTime = Time.unscaledTime;
 
         learningAIs = new List<LearningAIController>();
 
@@ -143,10 +171,11 @@ public class SceneManager : MonoBehaviour
     /// <param name="currentTime"></param>
     private void RecordMetrics(float currentTime)
     {
-        interationCount++;
-        interationsLabel.text = "Interations: " + interationCount;
+        iterationCount++;
+        interationsLabel.text = "Interations: " + iterationCount;
 
         int greenTeamWins = 0;
+        float avgFitness = 0f;
         float avgKills = 0f;
         float avgDamageGiven = 0f;
         float avgDamageTaken = 0f;
@@ -155,14 +184,14 @@ public class SceneManager : MonoBehaviour
 
         int aiCount = learningAIs.Count;
 
-        float highest = 0;
+        float maxFitness = 0;
         int fittestIndex = 0;
 
         for (int i = 0; i < aiCount; i++)
         {
             var learningAi = learningAIs[i];
 
-            if (learningAi.State == States.Victory)
+            if (learningAi.TeamWon)
             {
                 greenTeamWins++;
             }
@@ -180,9 +209,11 @@ public class SceneManager : MonoBehaviour
             // Set the fitness for each learning AI
             var fitness = learningAIs[i].UpdateFitness(currentTime);
 
-            if (fitness > highest)
+            avgFitness += fitness;
+
+            if (fitness > maxFitness)
             {
-                highest = fitness;
+                maxFitness = fitness;
                 fittestIndex = i;
             }
 
@@ -194,7 +225,8 @@ public class SceneManager : MonoBehaviour
 
         if (fittest != null)
         {
-            fittestgKillsLabel.text = "Kills: " + fittest.Kills;
+            fittestFitnessLabel.text = "Fitness: " + maxFitness;
+            fittestKillsLabel.text = "Kills: " + fittest.Kills;
             fittestDmgGivenLabel.text = "Damage given: " + fittest.DamageGiven;
             fittestDmgTakenLabel.text = "Damage taken: " + fittest.DamageTaken;
             fittestSurvivalTimeLabel.text = "Survival time: " + fittest.GetSurvivalTime(currentTime);
@@ -206,7 +238,16 @@ public class SceneManager : MonoBehaviour
         avgDamageGiven /= aiCount;
         avgDamageTaken /= aiCount;
         avgSurvivalTime /= aiCount;
+        avgFitness /= aiCount;
 
+        var change = ((avgFitness - previousAvgFitness) / avgFitness) * 100;
+
+        var changeInFitness = iterationCount > 1 ? change : 0;
+
+        previousAvgFitness = avgFitness;
+
+        changeInFitnessLabel.text = "Change in avg fitness (%): " + changeInFitness;
+        avgFitnessLabel.text = "Fitness: " + avgFitness;
         avgKillsLabel.text = "Kills: " + avgKills;
         avgDmgGivenLabel.text = "Damage given: " + avgDamageGiven;
         avgDmgTakenLabel.text = "Damage taken: " + avgDamageTaken;
@@ -226,10 +267,18 @@ public class SceneManager : MonoBehaviour
         // save the network weights and biases of the fittest instance to file
         networks[populationSize - 1].Save("Assets/Save.txt");
 
+        // Keep the fittest half of the population and use them to breed some new ones
         for (int i = 0; i < populationSize / 2; i++)
         {
-            networks[i] = networks[i + populationSize / 2].copy(new NeuralNetwork(layers));
+            var randomParentIndex1 = Random.Range(populationSize / 2, populationSize);
+            var randomParentIndex2 = Random.Range(populationSize / 2, populationSize);
 
+            //networks[i] = networks[i + populationSize / 2].Clone(new NeuralNetwork(layers));
+
+            // Perform crossover from two random parents in the fit half of the population
+            networks[i] = networks[randomParentIndex1].Crossover(networks[randomParentIndex2]);
+
+            // mutate
             networks[i].Mutate((int)(1 / MutationChance), MutationStrength);
         }
     }

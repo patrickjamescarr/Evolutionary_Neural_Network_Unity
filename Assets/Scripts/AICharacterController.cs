@@ -198,7 +198,7 @@ public class AICharacterController : MonoBehaviour
         aiPath.maxSpeed = 0.5f;
         aiPath.endReachedDistance = 0.0f;
 
-        if(Magic < 5)
+        if(Magic < 4)
         {
             magicFitness++;
         }
@@ -310,16 +310,20 @@ public class AICharacterController : MonoBehaviour
 
         if (transform.name.Equals("Learning_AI"))
         {
+            if (_magic <= 0 || (_health <= HealthLow && healthAvailable))
+            {
+                attackFitness--;
+            }
+            else
+            {
+                attackFitness++;
+            }
+
             SetClosestObjectWithTagAsTarget(enemyTag);
 
             if(_target != null)
             {
                 distanceToTarget = Vector2.Distance(_target.transform.position, transform.position);
-
-                if (_magic <= 0)
-                {
-                    attackFitness--;
-                }
             }
         }
 
@@ -404,13 +408,32 @@ public class AICharacterController : MonoBehaviour
         return persuers;
     }
 
+    protected int EnemyCount()
+    {
+        var count = 0;
+
+        for (int i = 0; i < enemies.Length; i++)
+        {
+            if (enemies[i] == null) continue;
+
+            var enemyAi = enemies[i].GetComponent<AICharacterController>();
+
+            if (enemyAi != null && enemyAi.Health > 0)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
     protected void SetState()
     {
         if (_health <= 0)
         {
             SetStateDead();
         }
-        else if (enemies.Length == 0)
+        else if (EnemyCount() == 0)
         {
             SetStateVictory();
         }

@@ -486,7 +486,7 @@ namespace Pathfinding {
 						if (testCount >= testLimit) {
 							// Note that clearanceRadius is a squared radius
 							clearanceRadius *= 0.9f*0.9f;
-							testLimit += 10;
+							testLimit ++;
 							if (testLimit > 100) clearanceRadius = 0;
 						}
 
