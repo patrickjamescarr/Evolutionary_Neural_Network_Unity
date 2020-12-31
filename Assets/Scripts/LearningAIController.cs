@@ -171,7 +171,7 @@ public class LearningAIController : AICharacterController
 
         //fitness += state == States.Victory ? 200 : 0;
 
-        //fitness += Kills * 10;
+
 
         //var hitScore = (hitsLanded * GetSurvivalTime(currentTime)) / 10;
 
@@ -185,14 +185,16 @@ public class LearningAIController : AICharacterController
 
         //fitness /= 20;
 
+        fitness += Kills * (fitness / 5);
 
+        fitness += (goodHealthPickup + goodMagicPickup) * (fitness / 5);
 
 
         //fitness += attackFitness;
 
         //fitness += hitsLanded;
 
-        //fitness += EnemyCount() == 0 ? 50 : 0;
+        fitness += EnemyCount() == 0 ? fitness : 0;
 
         //fitness += GetSurvivalTime(currentTime);
 

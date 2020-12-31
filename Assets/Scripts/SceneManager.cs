@@ -1,5 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,20 +13,20 @@ public class SceneManager : MonoBehaviour
     public float timeframe;
 
     // game speed
-    [Range(0.1f, 100f)] public float Gamespeed = 1f;
+    [Range(0.1f, 100f)] public float gamespeed = 1f;
 
     // population size
-    [Range(10, 50)] public int populationSize = 50;
+    [Range(10, 60)] public int populationSize = 50;
 
     // network layer configuration {<input layer>, <hidden layers>..., <output layer>}
     public int[] layers;
 
     // mutation variables
-    [Range(0.0001f, 1f)] public float MutationChance = 0.01f;
-    [Range(0f, 1f)] public float MutationStrength = 0.5f;
+    [Range(0.0001f, 1f)] public float mutationChance = 0.05f;
+    [Range(0f, 1f)] public float mutationStrength = 0.01f;
 
     // reference to the instance prefab
-    public GameObject InstancePrefab;
+    public GameObject instancePrefab;
 
     // Output panel labels
     public Text interationsLabel;
@@ -62,6 +64,8 @@ public class SceneManager : MonoBehaviour
 
     private float previousAvgFitness= 0f;
 
+    private StringBuilder avgFitnessCsv; 
+
     private void Update()
     {
         elapsedTime = Time.time - interationStartTime;
@@ -71,12 +75,15 @@ public class SceneManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        avgFitnessCsv = new StringBuilder();
+        avgFitnessCsv.AppendLine("Iterations, Max, Average, Min");
+
         InitialiseNetworks();
 
         // Call the CreateInstances function to repeat in the given time frame
-        //InvokeRepeating(nameof(NewIteration), 0.1f, timeframe);
+        InvokeRepeating(nameof(NewIteration), 0.1f, timeframe);
 
-        StartCoroutine(NewIteration());
+        //StartCoroutine(NewIterationEnumerator());
     }
 
     /// <summary>
@@ -89,21 +96,43 @@ public class SceneManager : MonoBehaviour
         for (int i = 0; i < populationSize; i++)
         {
             var network = new NeuralNetwork(layers);
-            //network.Load("Assets/Results/Hits_WinBonus_AutoTargetAttack.txt");//on start load the network save
+            //network.Load("Assets/Results/300.txt");//on start load the network save
             networks.Add(network);
         }
+    }
+
+    private void NewIteration()
+    {
+        // if (iterationCount > 20) return;
+
+        // capture the current scaled game time 
+        var currentTime = Time.time;
+
+        interationStartTime = currentTime;
+
+        elapsedTime = 0.0f;
+
+        // Set the game speed
+        Time.timeScale = gamespeed;
+
+        // record metrics and sort networks from the previous iteration
+        if (learningAIs != null)
+        {
+            RecordMetrics(currentTime);
+            SortNetworks(currentTime);
+        }
+
+        // create the new instances
+        CreateInstances();
     }
 
     /// <summary>
     /// 
     /// </summary>
-    private IEnumerator NewIteration()
+    private IEnumerator NewIterationEnumerator()
     {
         while (true)
         {
-            // Let the engine run for a frame.
-            yield return null;
-
             // capture the current scaled game time 
             var currentTime = Time.time;
 
@@ -112,7 +141,7 @@ public class SceneManager : MonoBehaviour
             elapsedTime = 0.0f;
 
             // Set the game speed
-            Time.timeScale = Gamespeed;
+            Time.timeScale = gamespeed;
 
             // record metrics and sort networks from the previous iteration
             if (learningAIs != null)
@@ -142,7 +171,7 @@ public class SceneManager : MonoBehaviour
             for (int j = 0; j < rowSize; j++)
             {
                 // create a new instance
-                var instance = Instantiate(InstancePrefab, new Vector3((12 * i) + (13.5f * j), (6 * i) - (6.75f * j), 0), new Quaternion(0, 0, 0, 0));
+                var instance = Instantiate(instancePrefab, new Vector3((12 * i) + (13.5f * j), (6 * i) - (6.75f * j), 0), new Quaternion(0, 0, 0, 0));
 
                 // get the learning AI from the instance so we can keep a reference to it 
                 var learningAi = instance.GetComponentInChildren<LearningAIController>();
@@ -185,6 +214,7 @@ public class SceneManager : MonoBehaviour
         int aiCount = learningAIs.Count;
 
         float maxFitness = 0;
+        float minFitness = 0;
         int fittestIndex = 0;
 
         for (int i = 0; i < aiCount; i++)
@@ -217,6 +247,11 @@ public class SceneManager : MonoBehaviour
                 fittestIndex = i;
             }
 
+            if (fitness < minFitness)
+            {
+                minFitness = fitness;
+            }
+
             // Remove all existing instances from the scene
             Destroy(learningAi.transform.root.gameObject);
         }
@@ -246,6 +281,10 @@ public class SceneManager : MonoBehaviour
 
         previousAvgFitness = avgFitness;
 
+        avgFitnessCsv.AppendLine(string.Format("{0}, {1}, {2}, {3}", iterationCount, maxFitness, avgFitness, minFitness));
+
+        File.WriteAllText("Assets/Results/AvgFitnessPerIteration.csv", avgFitnessCsv.ToString());
+
         changeInFitnessLabel.text = "Change in avg fitness (%): " + changeInFitness;
         avgFitnessLabel.text = "Fitness: " + avgFitness;
         avgKillsLabel.text = "Kills: " + avgKills;
@@ -273,13 +312,11 @@ public class SceneManager : MonoBehaviour
             var randomParentIndex1 = Random.Range(populationSize / 2, populationSize);
             var randomParentIndex2 = Random.Range(populationSize / 2, populationSize);
 
-            //networks[i] = networks[i + populationSize / 2].Clone(new NeuralNetwork(layers));
-
             // Perform crossover from two random parents in the fit half of the population
             networks[i] = networks[randomParentIndex1].Crossover(networks[randomParentIndex2]);
 
             // mutate
-            networks[i].Mutate((int)(1 / MutationChance), MutationStrength);
+            networks[i].Mutate(mutationChance, mutationStrength);
         }
     }
 }

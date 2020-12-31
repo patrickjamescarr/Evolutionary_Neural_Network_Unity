@@ -67,6 +67,9 @@ public class AICharacterController : MonoBehaviour
     protected int healthFitness = 0;
     protected int magicFitness = 0;
 
+    protected int goodMagicPickup = 0;
+    protected int goodHealthPickup = 0;
+
     public GameObject Target
     {
         get
@@ -150,6 +153,11 @@ public class AICharacterController : MonoBehaviour
     {
         if (collision.CompareTag(HealthTag))
         {
+            if(state == States.FindHealth && _health <= HealthLow)
+            {
+                goodHealthPickup++;
+            }
+
             StartCoroutine(AddHealth());
             Destroy(collision.gameObject);
             findingHealth = false;
@@ -157,6 +165,11 @@ public class AICharacterController : MonoBehaviour
 
         if (collision.CompareTag(MagicTag))
         {
+            if (state == States.FindMagic && _magic < 4)
+            {
+                goodMagicPickup++;
+            }
+
             StartCoroutine(AddMagic());
             Destroy(collision.gameObject);
             findingMagic = false;
@@ -198,7 +211,7 @@ public class AICharacterController : MonoBehaviour
         aiPath.maxSpeed = 0.5f;
         aiPath.endReachedDistance = 0.0f;
 
-        if(Magic < 4)
+        if(_magic < 4)
         {
             magicFitness++;
         }
@@ -225,7 +238,7 @@ public class AICharacterController : MonoBehaviour
         aiPath.maxSpeed = 1f;
         aiPath.endReachedDistance = 0.0f;
 
-        if (Health < 5)
+        if (Health <= HealthLow)
         {
             healthFitness++;
         }
