@@ -378,7 +378,7 @@ public class AICharacterController : MonoBehaviour
         var position = transform.position;
         var persuerPosition = persuer.transform.position;
 
-        if (_health <= HealthLow && Vector2.Distance(persuerPosition, position) >= attackRange)
+        if (_health <= HealthLow && Vector2.Distance(persuerPosition, position) <= attackRange)
         {
             fleeFitness++;
         }

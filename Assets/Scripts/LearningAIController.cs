@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class LearningAIController : AICharacterController
 {
@@ -10,6 +9,8 @@ public class LearningAIController : AICharacterController
 
     public GameObject healthBar;
     public GameObject magicBar;
+
+    public bool isControl = false;
 
     public States State
     {
@@ -60,8 +61,98 @@ public class LearningAIController : AICharacterController
     void Update()
     {
         UpdateEnemyStatus();
+
         UpdateHealthAndMagicStatus();
 
+        UpdateHealthAndMagicBar();
+
+        if(isControl)
+        {
+            SetState();
+        }
+        else
+        {
+            if (Health <= 0)
+            {
+                SetStateDead();
+            }
+            else if (EnemyCount() == 0)
+            {
+                SetStateVictory();
+            }
+            else
+            {
+                FeedForward();
+            }
+        }
+
+        // perform action
+        Act();
+
+        Animate();
+    }
+
+    private void FeedForward()
+    {
+        // has target
+        //input[0] = hasTarget ? 1f : 0f;
+        input[0] = EnemyCount();
+
+        // has target
+        input[1] = hasPersuer ? 1f : 0f;
+
+        // distance to persuer
+        input[2] = distanceToPersuer;
+
+        // current health
+        input[3] = Health;
+
+        // current magic
+        input[4] = Magic;
+
+        // health available
+        input[5] = healthAvailable ? 1f : 0f;
+
+        // magic available
+        input[6] = magicAvailable ? 1f : 0f;
+
+        // feed forward the input in the network
+        float[] output = network.FeedForward(input);
+
+        // find the strongest suggested output from the network
+        int stateValue = CalculateOutputState(output);
+
+        state = (States)stateValue;
+    }
+
+    private static int CalculateOutputState(float[] output)
+    {
+        float maxValue = 0;
+        int stateValue = 0;
+
+        for (int i = 0; i < output.Length; i++)
+        {
+            var currentValue = output[i];
+
+            if (i == 0)
+            {
+                maxValue = currentValue;
+                stateValue = i + 1;
+                continue;
+            }
+
+            if (currentValue > maxValue)
+            {
+                maxValue = currentValue;
+                stateValue = i + 1;
+            }
+        }
+
+        return stateValue;
+    }
+
+    private void UpdateHealthAndMagicBar()
+    {
         var healthScale = healthBar.transform.localScale;
         healthScale.x = (Health / 10);
         healthBar.transform.localScale = healthScale;
@@ -69,71 +160,6 @@ public class LearningAIController : AICharacterController
         var magicScale = magicBar.transform.localScale;
         magicScale.x = (Magic / 10);
         magicBar.transform.localScale = magicScale;
-
-        if (Health <= 0)
-        {
-            SetStateDead();
-        }
-        else if(EnemyCount() == 0)
-        {
-            SetStateVictory();
-        }
-        else
-        {
-            // has target
-            //input[0] = hasTarget ? 1f : 0f;
-            input[0] = EnemyCount();
-
-            // has target
-            input[1] = hasPersuer ? 1f : 0f;
-
-            // distance to persuer
-            input[2] = distanceToPersuer;
-
-            // current health
-            input[3] = Health;
-
-            // current magic
-            input[4] = Magic;
-
-            // health available
-            input[5] = healthAvailable ? 1f : 0f;
-
-            // magic available
-            input[6] = magicAvailable ? 1f : 0f;
-
-            // feed forward the input in the network
-            float[] output = network.FeedForward(input);
-
-            // find the strongest suggested output from the network
-            float maxValue = 0;
-            int stateValue = 0;
-
-            for (int i = 0; i < output.Length; i++)
-            {
-                var currentValue = output[i];
-
-                if (i == 0)
-                {
-                    maxValue = currentValue;
-                    stateValue = i + 1;
-                    continue;
-                }
-
-                if (currentValue > maxValue)
-                {
-                    maxValue = currentValue;
-                    stateValue = i + 1;
-                }
-            }
-
-            state = (States)stateValue;
-        }
-
-        // perform action
-        Act();
-
-        Animate();
     }
 
     public float GetSurvivalTime(float currentTime)
@@ -143,82 +169,23 @@ public class LearningAIController : AICharacterController
 
     public float UpdateFitness(float currentTime)
     {
-        //fitness = CaclulateTimeFitness();
-
-        //float fitness = KillsDamageGivenAndTake();
-
         float fitness = 0;
 
-        //fitness += KillsDamageGivenAndTake();
+        // fitness based on decision making in certain circumstances
+        var baseFitness = attackFitness + fleeFitness + healthFitness + magicFitness;
 
-        //fitness += fleeFitness + healthFitness + magicFitness;
+        fitness += baseFitness;
 
-        //fitness += GetSurvivalTime(currentTime) * Kills;
+        // fitness bonus for every kill
+        fitness += Kills * (baseFitness / 5);
 
-        //fitness += state == States.Victory ? 200 : 0;
+        // fitness bonus for following through on magic and health decision making
+        fitness += (goodHealthPickup + goodMagicPickup) * (baseFitness / 5);
 
-        //fitness += EnemyCount() == 0 ? 100 : 0;
-
-        //fitness += hitsLanded;
-
-        //var enemyScore = 50;
-
-        //enemyScore -= enemies.Length * 10;
-
-        //fitness += enemyScore;
-
-        //fitness += EnemyCount() == 0 ? 100 : 0;
-
-        //fitness += state == States.Victory ? 200 : 0;
-
-
-
-        //var hitScore = (hitsLanded * GetSurvivalTime(currentTime)) / 10;
-
-        //fitness += hitScore;
-
-        fitness += (attackFitness + fleeFitness + healthFitness + magicFitness);
-
-        //fitness += (healthFitness + magicFitness + fleeFitness + attackFitness);
-
-        //fitness = fitness >= 0 ? fitness * hitsLanded : fitness;
-
-        //fitness /= 20;
-
-        fitness += Kills * (fitness / 5);
-
-        fitness += (goodHealthPickup + goodMagicPickup) * (fitness / 5);
-
-
-        //fitness += attackFitness;
-
-        //fitness += hitsLanded;
-
+        // large bonus if they win the battle
         fitness += EnemyCount() == 0 ? fitness : 0;
 
-        //fitness += GetSurvivalTime(currentTime);
-
-        network.fitness = fitness; //updates fitness of network for sorting
-
-        return fitness;
-    }
-
-    private float KillsDamageGivenAndTake()
-    {
-        return enemiesKilled + hitsLanded - hitsTaken;
-    }
-
-    private float CaclulateTimeFitness()
-    {
-        float fitness;
-        if (state.Equals(States.Dead))
-        {
-            fitness = timeOfDeath - timeOfCreation;
-        }
-        else
-        {
-            fitness = Time.time - timeOfCreation;
-        }
+        network.fitness = fitness;
 
         return fitness;
     }

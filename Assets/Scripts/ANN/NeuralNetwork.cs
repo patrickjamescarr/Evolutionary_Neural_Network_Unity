@@ -6,19 +6,18 @@ using UnityEngine;
 enum ActivationType
 {
     Sigmoid = 0,
-    Tanh = 1,
     ReLU = 2
 }
 
 public class NeuralNetwork : IComparable<NeuralNetwork>
 {
     // containers for the elements in the network
-    private int[] layers; // contains the layers in the network. Inputlayer, hidden layers and output
+    private readonly int[] layers; // contains the layers in the network. Inputlayer, hidden layers and output
     private float[][] neurons; // contains the neurons within each layer
     private float[][] biases; // the biases for each neuron
     private float[][][] weights; // the weights associated with each dendrite
 
-    private ActivationType activationType = ActivationType.Sigmoid;
+    private readonly ActivationType activationType = ActivationType.Sigmoid;
 
     public float fitness = 0;
 
@@ -89,7 +88,7 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
 
                 for (int k = 0; k < neuronsInPreviousLayer; k++)
                 {
-                    // use a small randon value to initialise the weight
+                    // use a small random value to initialise the weight
                     neuronWeights[k] = UnityEngine.Random.Range(-0.5f, 0.5f);
                 }
 
@@ -116,14 +115,15 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
             for (int j = 0; j < neurons[i].Length; j++)
             {
                 // calculate the weighted sum
-                float value = 0f;
+                float weightedSum = 0f;
+
                 for (int k = 0; k < neurons[i - 1].Length; k++)
                 {
-                    value += weights[i - 1][j][k] * neurons[i - 1][k];
+                    weightedSum += weights[i - 1][j][k] * neurons[i - 1][k];
                 }
 
                 // apply the activation function
-                neurons[i][j] = Activate(value + biases[i][j]);
+                neurons[i][j] = Activate(weightedSum + biases[i][j]);
             }
         }
 
@@ -137,8 +137,6 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
         {
             case ActivationType.Sigmoid:
                 return Sigmoid(value);
-            case ActivationType.Tanh:
-                return HyperbolicTangent(value);
             case ActivationType.ReLU:
                 return ReLU(value);
             default:
@@ -147,15 +145,9 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
     }
 
     // activation functions
-
     private static float ReLU(float value)
     {
         return Mathf.Max(0, value);
-    }
-
-    private static float HyperbolicTangent(float value)
-    {
-        return (float)Math.Tanh(value);
     }
 
     private static float Sigmoid(float value)
@@ -164,51 +156,58 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
     }
 
     /// <summary>
-    /// 
+    /// Gets a random float in a given range to apply as a mutation
     /// </summary>
-    public void Mutate(float chance, float strength)
+    private float GetRandomMutationValue(float mutationChance, float mutationStrength)
     {
+        // get a random float value between 0 and 1
+        var randomVal = UnityEngine.Random.value;
+
+        // if the random value is less than the given chance of mutation then 
+        // return a random float value in the range of the given mutation strength,
+        // otherwise return 0
+        return randomVal < mutationChance ? UnityEngine.Random.Range(-mutationStrength, mutationStrength) : 0f;
+    }
+
+    /// <summary>
+    /// Performs mutation on this network
+    /// </summary>
+    public void Mutate(float mutationChance, float mutationStrength)
+    {
+        // loop through the biases
         for (int i = 0; i < biases.Length; i++)
         {
             for (int j = 0; j < biases[i].Length; j++)
             {
-                var randomVal = UnityEngine.Random.value;
-
-                if (randomVal < chance)
-                {
-                    var mutationAmount = UnityEngine.Random.Range(-strength, strength);
-
-                    biases[i][j] += mutationAmount;
-                }
+                // apply a random mutation value
+                biases[i][j] += GetRandomMutationValue(mutationChance, mutationStrength);
             }
         }
 
+        // loop through the weights
         for (int i = 0; i < weights.Length; i++)
         {
             for (int j = 0; j < weights[i].Length; j++)
             {
                 for (int k = 0; k < weights[i][j].Length; k++)
                 {
-                    var randomVal = UnityEngine.Random.value;
-
-                    if (randomVal < chance)
-                    {
-                        var mutationAmount = UnityEngine.Random.Range(-strength, strength);
-
-                        weights[i][j][k] += mutationAmount;
-                    }
+                    // apply a random mutation value
+                    weights[i][j][k] += GetRandomMutationValue(mutationChance, mutationStrength);
                 }
             }
         }
     }
 
     /// <summary>
-    /// 
+    /// Crossover this network with another network to produce a new child network
     /// </summary>
     public NeuralNetwork Crossover(NeuralNetwork otherNetwork)
     {
+        // create a new child network
         var child = new NeuralNetwork(layers);
 
+        // loop through the biases and randomly assign the child network 
+        // bias values from either this network or the other one
         for (int i = 0; i < biases.Length; i++)
         {
             for (int j = 0; j < biases[i].Length; j++)
@@ -217,6 +216,8 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
             }
         }
 
+        // loop through the weights and randomly assign the child network 
+        // weight values from either this network or the other one
         for (int i = 0; i < weights.Length; i++)
         {
             for (int j = 0; j < weights[i].Length; j++)
@@ -231,8 +232,10 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
         return child;
     }
 
-    // allows sorting of networks from within a list.
-    // sort by fitness
+    /// <summary>
+    /// allows sorting of networks from within a list.
+    /// sort by fitness
+    /// </summary>
     public int CompareTo(NeuralNetwork other)
     {
         if (other == null) return 1;
@@ -246,71 +249,76 @@ public class NeuralNetwork : IComparable<NeuralNetwork>
     }
 
     /// <summary>
-    /// 
+    /// Save this network's weights and bias values to file
     /// </summary>
-    /// <param name="path"></param>
     public void Save(string path)
     {
         File.Create(path).Close();
-        StreamWriter writer = new StreamWriter(path, true);
+        var streamWriter = new StreamWriter(path, true);
 
+        // loop through all the bias values and write them to the file
         for (int i = 0; i < biases.Length; i++)
         {
             for (int j = 0; j < biases[i].Length; j++)
             {
-                writer.WriteLine(biases[i][j]);
+                streamWriter.WriteLine(biases[i][j]);
             }
         }
 
+        // loop through all the weight values and write them to the file
         for (int i = 0; i < weights.Length; i++)
         {
             for (int j = 0; j < weights[i].Length; j++)
             {
                 for (int k = 0; k < weights[i][j].Length; k++)
                 {
-                    writer.WriteLine(weights[i][j][k]);
+                    streamWriter.WriteLine(weights[i][j][k]);
                 }
             }
         }
-        writer.Close();
+
+        streamWriter.Close();
     }
 
     /// <summary>
-    /// 
+    /// Load a previously saved set of weights and biases into this network
     /// </summary>
     public void Load(string path)
     {
-        TextReader tr = new StreamReader(path);
-        int NumberOfLines = (int)new FileInfo(path).Length;
-        string[] ListLines = new string[NumberOfLines];
-        int index = 1;
+        var fileInfo = new FileInfo(path);
+        var streamReader = new StreamReader(path);
+        var lines = new string[fileInfo.Length];
+        int lineIndex = 1;
 
-        for (int i = 1; i < NumberOfLines; i++)
+        // read in each line from the saved file
+        for (int i = 1; i < fileInfo.Length; i++)
         {
-            ListLines[i] = tr.ReadLine();
+            lines[i] = streamReader.ReadLine();
         }
 
-        tr.Close();
+        streamReader.Close();
 
-        if (new FileInfo(path).Length > 0)
+        if (fileInfo.Length > 0)
         {
+            // loop through the baises and assign the values from the file
             for (int i = 0; i < biases.Length; i++)
             {
                 for (int j = 0; j < biases[i].Length; j++)
                 {
-                    biases[i][j] = float.Parse(ListLines[index]);
-                    index++;
+                    biases[i][j] = float.Parse(lines[lineIndex]);
+                    lineIndex++;
                 }
             }
 
+            // loop through the weights and assign the values from the file
             for (int i = 0; i < weights.Length; i++)
             {
                 for (int j = 0; j < weights[i].Length; j++)
                 {
                     for (int k = 0; k < weights[i][j].Length; k++)
                     {
-                        weights[i][j][k] = float.Parse(ListLines[index]); ;
-                        index++;
+                        weights[i][j][k] = float.Parse(lines[lineIndex]); ;
+                        lineIndex++;
                     }
                 }
             }
